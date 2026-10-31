@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>미필적 연애 · 음악 자동재생 검사</title>
+<style>
+:root{color-scheme:dark}body{background:#131317;color:#f5eef2;font-family:system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;max-width:660px;margin:0 auto;padding:26px 18px;line-height:1.65}h1{font-size:22px}.panel{background:#26262d;border:1px solid #63525d;padding:20px;border-radius:14px;margin:16px 0}strong{color:#f1bbcd}code{color:#f3d5a8;overflow-wrap:anywhere}button{background:#dfaabb;color:#1d141b;border:0;border-radius:10px;padding:13px 17px;font-weight:700;cursor:pointer}.hint{font-size:14px;color:#cac0c7}.result{font-weight:650;font-size:17px}a{color:#f5c3d2}audio{display:none}
+</style></head><body>
+<h1>음악 자동재생 확인</h1>
+<p class="hint">페이지를 열자마자 <b>아무것도 누르지 않고</b> 결과를 확인하세요. 실제 사이트와 같은 음원을 사용합니다.</p>
+<div class="panel"><div id="out" class="result">자동재생 시도 중…</div><div id="reason" class="hint">음원 및 브라우저 상태를 확인하고 있습니다</div></div>
+<div class="panel"><div>사이트: <code id="origin"></code></div><div>음원: <code>assets/music/playlist_loop.mp3</code> <span id="file">확인 중…</span></div><div>브라우저 정책: <code id="policy">확인 중…</code></div><div>재생 상태: <code id="state">확인 중…</code></div></div>
+<button id="manual" type="button">내가 눌러서 재생 테스트</button>
+<p class="hint">재생이 <b>NotAllowedError</b>로 거부되었다면 크롬의 소리 자동재생 제한입니다. 그 경우 웹페이지 HTML/JS 변경만으로 방문자 전체에게 소리 재생을 강제할 수는 없습니다.</p>
+<p><a href="./">← 웹페이지로 돌아가기</a></p>
+<audio id="probe" src="assets/music/playlist_loop.mp3" preload="auto" autoplay playsinline></audio>
+<script>
+(()=>{
+const player=document.querySelector('#probe');
+const $=id=>document.getElementById(id);
+$('origin').textContent=location.origin;
+const pol=(navigator.getAutoplayPolicy?.(player)??'Chrome에서 정책 조회 API 미지원');
+$('policy').textContent=pol;
+function report(state,detail){$('out').textContent=state;$('reason').textContent=detail||'';$('state').textContent='paused='+player.paused+' / readyState='+player.readyState;}
+fetch('assets/music/playlist_loop.mp3',{method:'HEAD',cache:'no-store'}).then(r=>{$('file').textContent=r.status+' '+(r.headers.get('content-type')||'');}).catch(e=>{$('file').textContent='확인 실패: '+e.message;});
+try{
+ const p=player.play();
+ Promise.resolve(p).then(()=>report('✅ 입장 즉시 자동재생 성공','브라우저에서 소리가 나는지 확인해 보세요.'),e=>{
+ const name=e?.name||'Error';
+ report('❌ 자동재생 거부: '+name,name==='NotAllowedError'?'이 사이트의 소리 있는 무클릭 자동재생을 브라우저가 차단했어요.':'오류: '+(e?.message||e));
+ });
+}catch(e){report('❌ 재생 예외: '+e.name,e.message)}
+$('manual').addEventListener('click',()=>{
+ player.play().then(()=>report('✅ 클릭 시 재생 성공','음원과 재생 코드는 정상. 무클릭 재생만 브라우저가 허용하지 않았을 수 있어요.'),e=>report('❌ 클릭 시 재생 실패: '+e.name,e.message));
+});
+player.addEventListener('error',()=>report('❌ 음원 파일 오류','mediaError='+player.error?.code));
+})();
+</script></body></html>
